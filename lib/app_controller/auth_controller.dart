@@ -74,7 +74,7 @@ class AuthController extends GetxController {
           isLoading.value = false;
           buildScaffoldSuccessMessage(context, "Registered successfully");
           clearController();
-          Get.offNamed(AppRouter.ONBOARD_VIEW);
+          Get.offNamed(AppRouter.ONBOARD_SCREEN);
         } else {
           isLoading.value = false;
           buildScaffoldErrorMessage(context, "User creation failed.");

@@ -22,8 +22,8 @@ class UserProfileController extends GetxController {
       final userId = UsersStorageService.getUserId();
 
       userDataStream = FirebaseFirestore.instance
-          .collection(AppConstants.collectionAuth) // Firestore collection name
-          .doc(userId) // Listen to document changes for the given HR ID
+          .collection(AppConstants.collectionAuth)
+          .doc(userId)
           .snapshots();
 
       userDataStream.listen((documentSnapshot) {

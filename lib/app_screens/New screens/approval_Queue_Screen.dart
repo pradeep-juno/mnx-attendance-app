@@ -25,7 +25,7 @@ class _LeaveRequestScreenState extends State<ApprovalQueueScreen> {
     leaveController.fetchLeaveRequests();
 
   }
-  LeaveController leaveController = Get.put(LeaveController());
+  final LeaveController leaveController = Get.find<LeaveController>();
 
   Color _getStatusColor(String status) {
     if (status == 'Approved') {
@@ -98,6 +98,8 @@ class _LeaveRequestScreenState extends State<ApprovalQueueScreen> {
                         child: Image.asset("assets/images/no_data.jpg"),
                       );
                     }
+
+
 
                     return ListView.builder(
                       itemCount: leaveController.leaveRequests.length,

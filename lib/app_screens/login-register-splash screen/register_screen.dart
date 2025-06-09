@@ -28,7 +28,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      buildSizedBoxHeightFun(context, height: 30),
                       buildAuthHeaderFun(context, AppConstants.registerCaps),
                       buildSizedBoxHeightFun(context, height: 30),
                       buildRegisterBodyFun(context, authController),

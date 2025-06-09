@@ -1,4 +1,4 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 
 class GNavBarWidget extends StatefulWidget {
@@ -16,24 +16,18 @@ class GNavBarWidget extends StatefulWidget {
 }
 
 class _GNavBarWidgetState extends State<GNavBarWidget> {
-  bool _isVisible = true;
-
-  void _handleSwipe(DragUpdateDetails details) {
-    if (details.delta.dy > 0) {
-      setState(() => _isVisible = false);
-    } else if (details.delta.dy < 0) {
-      setState(() => _isVisible = true);
-    }
-  }
+  final bool _isVisible = true;
 
   @override
   Widget build(BuildContext context) {
     final double screenHeight = MediaQuery.of(context).size.height;
     final double screenWidth = MediaQuery.of(context).size.width;
 
+    // The iconSize of GNav will now directly control the size of all GButton icons.
+    // Adjusted slightly for a good visual fit with Material Icons.
+    final double navIconSize = screenWidth * 0.065;
+
     return GestureDetector(
-
-
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         height: _isVisible ? screenHeight * 0.08 : 0,
@@ -47,31 +41,24 @@ class _GNavBarWidgetState extends State<GNavBarWidget> {
           child: GNav(
             selectedIndex: widget.selectedIndex,
             onTabChange: widget.onTabChange,
-            rippleColor: Colors.white.withOpacity(0.1),
-            hoverColor: Colors.white.withOpacity(0.05),
+            rippleColor: Colors.white.withOpacity(0.15),
+            hoverColor: Colors.white.withOpacity(0.1),
             haptic: true,
             tabBorderRadius: 12,
             curve: Curves.easeOutExpo,
             duration: const Duration(milliseconds: 400),
-            gap: 6,
-            color: Colors.white70,
-            activeColor: Colors.white,
-            iconSize: screenWidth * 0.06,
-            tabBackgroundColor: Colors.white.withOpacity(0.1),
+            gap: screenWidth * 0.015,
+            color: Colors.white70, // Inactive icon color
+            activeColor: Colors.white, // Active icon color
+            iconSize: navIconSize, // GNav will apply this size to its icons
+            tabBackgroundColor: Colors.white.withOpacity(0.12),
             padding: EdgeInsets.symmetric(
               horizontal: screenWidth * 0.03,
-              vertical: screenHeight * 0.01,
+              vertical: screenHeight * 0.012,
             ),
             tabs: [
               GButton(
-                icon: Icons.home,
-                iconColor: Colors.transparent,
-                leading: Image.asset(
-                  'assets/icons/home.png',
-                  height: screenHeight * 0.035,
-                  width: screenHeight * 0.035,
-                  fit: BoxFit.contain,
-                ),
+                icon: Icons.home_filled, // Home icon
                 text: 'Home',
                 textStyle: TextStyle(
                   fontSize: screenWidth * 0.035,
@@ -80,14 +67,7 @@ class _GNavBarWidgetState extends State<GNavBarWidget> {
                 ),
               ),
               GButton(
-                icon: Icons.check,
-                iconColor: Colors.transparent,
-                leading: Image.asset(
-                  'assets/icons/attendance.png',
-                  height: screenHeight * 0.035,
-                  width: screenHeight * 0.035,
-                  fit: BoxFit.contain,
-                ),
+                icon: Icons.event_available , // Attendance/Check icon
                 text: 'Attendance',
                 textStyle: TextStyle(
                   fontSize: screenWidth * 0.035,
@@ -96,14 +76,7 @@ class _GNavBarWidgetState extends State<GNavBarWidget> {
                 ),
               ),
               GButton(
-                icon: Icons.exit_to_app,
-                iconColor: Colors.transparent,
-                leading: Image.asset(
-                  'assets/icons/leave.png',
-                  height: screenHeight * 0.035,
-                  width: screenHeight * 0.035,
-                  fit: BoxFit.contain,
-                ),
+                icon: Icons.work_off_outlined,
                 text: 'Leave',
                 textStyle: TextStyle(
                   fontSize: screenWidth * 0.035,
@@ -112,14 +85,7 @@ class _GNavBarWidgetState extends State<GNavBarWidget> {
                 ),
               ),
               GButton(
-                icon: Icons.person,
-                iconColor: Colors.transparent,
-                leading: Image.asset(
-                  'assets/icons/profile.png',
-                  height: screenHeight * 0.04,
-                  width: screenHeight * 0.04,
-                  fit: BoxFit.contain,
-                ),
+                icon: Icons.person_outline, // Profile icon
                 text: 'Profile',
                 textStyle: TextStyle(
                   fontSize: screenWidth * 0.035,

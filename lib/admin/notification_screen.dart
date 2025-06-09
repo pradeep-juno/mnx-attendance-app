@@ -3,48 +3,18 @@ import 'package:get/get.dart';
 import '../app_controller/admin_controller.dart';
 import 'leave_approval.dart';
 
-class AdminDashboardScreen extends StatefulWidget {
+class AdminNotificationScreen extends StatefulWidget {
   @override
-  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+  State<AdminNotificationScreen> createState() => _AdminNotificationScreenState();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+class _AdminNotificationScreenState extends State<AdminNotificationScreen> {
   final AdminMessageController adminController = Get.put(AdminMessageController());
   final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
-              child: Text('Navigation', style: TextStyle(color: Colors.white, fontSize: 24)),
-            ),
-            ListTile(
-              leading: Icon(Icons.dashboard),
-              title: Text('Dashboard'),
-              onTap: () {
-               Get.back(); // Just close drawer
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.event_note),
-              title: Text('Leave Requests'),
-              onTap: () {
-                Get.off(() => LeaveRequestScreen()); // Navigate fresh
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('Settings'),
-              onTap: () {},
-            ),
-          ],
-        ),
-      ),
       appBar: AppBar(
         automaticallyImplyLeading: true, // This shows hamburger menu instead of back button
         title: Text('Dashboard'),

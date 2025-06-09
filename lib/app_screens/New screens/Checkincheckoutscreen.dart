@@ -90,7 +90,7 @@ class _CheckincheckoutscreenState extends State<Checkincheckoutscreen> {
                               fontSize: 12,
                               height: 1.0,
                               letterSpacing: 0.0,
-                              color: AppColors.blue,
+                              color: AppColors.primaryColor,
                             ),
                           ),
                           Image.asset(
@@ -125,7 +125,7 @@ class _CheckincheckoutscreenState extends State<Checkincheckoutscreen> {
                               fontSize: 12,
                               height: 1.0,
                               letterSpacing: 0.0,
-                              color: AppColors.blue,
+                              color: AppColors.primaryColor,
                             ),
                           ),
                           Image.asset(

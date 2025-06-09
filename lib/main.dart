@@ -28,13 +28,13 @@ class MyApp extends StatelessWidget {
         colorScheme: const ColorScheme.light(
           primary: AppColors.primaryBlue,
           onPrimary: AppColors.backgroundWhite,
-          secondary: AppColors.orange,
+          secondary: AppColors.primaryColor,
           onSecondary: AppColors.backgroundWhite,
         ),
         textTheme: GoogleFonts.nunitoTextTheme(), // Corrected line
         useMaterial3: true,
       ),
-      title: AppConstants.vaadagai,
+      title: AppConstants.hrmAttendance,
       debugShowCheckedModeBanner: false,
       initialRoute: AppRouter.SPLASH_SCREEN,
       getPages: AppRouter.routes,
