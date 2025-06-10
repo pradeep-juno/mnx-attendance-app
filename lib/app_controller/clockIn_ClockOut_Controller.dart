@@ -23,6 +23,7 @@ class ClockInClockOutController extends GetxController {
   var currentUserName = ''.obs;
   var isClockedIn = false.obs;
   var currentClockLogDocId = Rxn<String>();
+  var missedAttendanceCount = 0.obs;
 
   final loc.Location location = loc.Location();
   loc.LocationData? locationData;
@@ -71,6 +72,24 @@ class ClockInClockOutController extends GetxController {
       scheduleClockOutReminder(); // Only schedule if clocked in and not clocked out
     }
   }
+
+  Future<List<ClockModel>> getMissedAttendanceRecords(DateTime start, DateTime end) async {
+    final records = await getAttendanceRecordsForUser(
+      userId: currentUserId.value,
+      startDate: start,
+      endDate: end,
+    );
+
+    final missedRecords = records.where((record) =>
+    record.clockInTime == null || record.clockOutTime == null
+    ).toList();
+
+    // ✅ Update the dynamic observable
+    missedAttendanceCount.value = missedRecords.length;
+
+    return missedRecords;
+  }
+
 
   Future<void> fetchTodayClockLogs() async {
     final now = DateTime.now();

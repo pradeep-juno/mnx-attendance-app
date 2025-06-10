@@ -302,6 +302,7 @@ clearController();
     );
   }
 
+
   //-------------------------------CHANGE_PASSWORD_IN_FIRESTORE--------------------//
   Future<void> changePassword(BuildContext context) async {
     if (await validateChangePasswordField(context)) {
@@ -453,7 +454,6 @@ clearController();
     authLoginPasswordController.clear();
   }
 }
-
 
 
 

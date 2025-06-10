@@ -38,6 +38,10 @@ final AdminMessageController adminMessageController = Get.put(AdminMessageContro
     final clockController = Get.find<ClockInClockOutController>();
     clockController.scheduleClockInReminder();
     clockController.scheduleClockOutReminder();
+    clockInClockcontroller.getMissedAttendanceRecords(
+      DateTime.now().subtract(const Duration(days: 7)),
+      DateTime.now(),
+    );
   }
 
   @override
@@ -246,12 +250,12 @@ final AdminMessageController adminMessageController = Get.put(AdminMessageContro
                           },
                           child: Padding(
                             padding: const EdgeInsets.only(right: 6.0),
-                            child: _buildQuickInsightSections(
+                            child: Obx(() => _buildQuickInsightSections(
                               color: AppColors.missedAttendenceColor,
                               icon: "assets/icons/Missed attendence.png",
-                              count: "10",
+                              count: "${clockInClockcontroller.missedAttendanceCount.value}",
                               label: AppConstants.missedAttendence,
-                            ),
+                            ),)
                           ),
                         ),
                       ),
