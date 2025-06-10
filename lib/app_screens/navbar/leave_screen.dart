@@ -12,16 +12,58 @@ class LeaveScreen extends StatelessWidget {
 
 
   Future<void> _pickDate(bool isStart, BuildContext context) async {
+    DateTime initialDate = isStart ? controller.startDate.value : controller.endDate.value;
+    // Ensure initialDate is not in the past if it somehow became so
+    if (initialDate.isBefore(DateTime.now())) {
+      initialDate = DateTime.now();
+    }
+
     DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: isStart ? controller.startDate.value : controller.endDate.value,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+      initialDate: initialDate,
+      // Set firstDate to today to disable all past dates
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100), // You can adjust this based on your needs
+      builder: (BuildContext context, Widget? child) {
+        // Optional: Customize the date picker theme for a consistent look
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Colors.blue, // Example primary color for the picker
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black87,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.blue, // Example text button color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
+
     if (pickedDate != null) {
       if (isStart) {
         controller.setStartDate(pickedDate);
+        // Optional: If the new start date is after the current end date,
+        // adjust the end date to be the same as the start date to maintain validity.
+        if (controller.endDate.value.isBefore(pickedDate)) {
+          controller.setEndDate(pickedDate);
+        }
       } else {
+        // When picking end date, ensure it's not before the start date.
+        // This is handled by setting firstDate in the showDatePicker call for end date,
+        // but this additional check can catch unexpected scenarios.
+        if (pickedDate.isBefore(controller.startDate.value)) {
+          // You might want to show a snackbar here or prevent selection
+          print("End date cannot be before start date.");
+          Get.snackbar("Invalid Date", "End date cannot be before start date.",
+              snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.shade100);
+          return; // Don't update the date if invalid
+        }
         controller.setEndDate(pickedDate);
       }
     }

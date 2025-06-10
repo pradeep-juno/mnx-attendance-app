@@ -1,3 +1,6 @@
+// lib/app_model/clockIn_clockOut_model.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ClockModel {
   final String clockId;
   final String uId;
@@ -5,6 +8,7 @@ class ClockModel {
   final String location;
   final DateTime clockInTime;
   final DateTime? clockOutTime;
+  final String? locationOut; // Added for clock-out location, as used in controller
 
   ClockModel({
     required this.clockId,
@@ -13,35 +17,38 @@ class ClockModel {
     required this.location,
     required this.clockInTime,
     this.clockOutTime,
+    this.locationOut,
   });
 
+  // Convert ClockModel object to a Map for Firestore
   Map<String, dynamic> toMap() {
     return {
       'clockId': clockId,
       'uId': uId,
       'userName': userName,
       'location': location,
-      'clockInTime': clockInTime.toIso8601String(),
-      'clockOutTime': clockOutTime,
+      'clockInTime': Timestamp.fromDate(clockInTime),
+      'clockOutTime': clockOutTime != null ? Timestamp.fromDate(clockOutTime!) : null,
+      'locationOut': locationOut,
     };
   }
 
-
-  factory ClockModel.fromMap(Map<String, dynamic> map, String docId) {
+  // Create ClockModel object from a Firestore Map/DocumentSnapshot
+  factory ClockModel.fromMap(Map<String, dynamic> data, String id) {
     return ClockModel(
-      clockId: docId,
-      uId: map['uId'] ?? '',
-      userName: map['userName'] ?? '',
-      location: map['location'] ?? '',
-      clockInTime: DateTime.parse(map['clockInTime'] ?? ''),
-      clockOutTime: map['clockOutTime'] != null
-          ? DateTime.parse(map['clockOutTime'])
-          : null,
+      clockId: id, // Use the document ID as clockId
+      uId: data['uId'] as String,
+      userName: data['userName'] as String,
+      location: data['location'] as String,
+      clockInTime: (data['clockInTime'] as Timestamp).toDate(),
+      clockOutTime: (data['clockOutTime'] as Timestamp?)?.toDate(),
+      locationOut: data['locationOut'] as String?,
     );
   }
 
-  @override
-  String toString() {
-    return 'ClockModel(clockId: $clockId, uId: $uId, userName: $userName, location: $location, clockInTime: $clockInTime, clockOutTime: $clockOutTime)';
+  // Helper for creating from DocumentSnapshot
+  factory ClockModel.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return ClockModel.fromMap(data, doc.id);
   }
 }

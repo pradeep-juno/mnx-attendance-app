@@ -1,11 +1,9 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:mnx_attendance_app/app_controller/clockIn_ClockOut_Controller.dart';
 
-import '../../app_utils/app_colors.dart';
-import '../../app_utils/app_constants.dart';
-
+import '../../app_model/clockIn_clockOut_model.dart';
 
 class MissedAttendanceScreen extends StatefulWidget {
   const MissedAttendanceScreen({super.key});
@@ -15,227 +13,104 @@ class MissedAttendanceScreen extends StatefulWidget {
 }
 
 class _MissedAttendanceScreenState extends State<MissedAttendanceScreen> {
+  ClockInClockOutController clockInClockOutController = Get.put(ClockInClockOutController());
+
   @override
   Widget build(BuildContext context) {
-    return SafeArea(child: Scaffold(
-      backgroundColor:AppColors.white,
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        leading:  InkWell(
-          onTap: () {
-            Get.back();
-          },
-          child: Image.asset(
-            "assets/icons/back.png",
-            height: 32,
-            width: 32,
-          ),
+    return Scaffold(
+      appBar: AppBar(title: const Text("Missed Attendance")),
+      body: FutureBuilder(
+        future: clockInClockOutController.getMissedAttendanceRecords(
+          DateTime.now().subtract(const Duration(days: 7)),
+          DateTime.now(),
         ),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || (snapshot.data as List).isEmpty) {
+            return const Center(child: Text("No missed attendance"));
+          }
 
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          'Missed Attendance',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Montserrat',
-            fontSize: 20,
-            height: 1.0, // 100% line height
-            letterSpacing: 0.32, // 2% of 16px
-            fontWeight: FontWeight.w600,
-            color: AppColors.textBlack.withValues(alpha: 0.9),
-          ),
-        ),
-      ),
+          final records = snapshot.data as List<ClockModel>;
+          return ListView.builder(
+            itemCount: records.length,
+            itemBuilder: (_, index) {
+              final rec = records[index];
+              final missedDate = rec.clockInTime ?? rec.clockOutTime!;
+              final missedType = (rec.clockInTime == null && rec.clockOutTime != null)
+                  ? "Missed Clock-In"
+                  : (rec.clockOutTime == null && rec.clockInTime != null)
+                  ? "Missed Clock-Out"
+                  : "Attendance Missing";
 
-      body: ListView.builder(
-        itemCount: 10,
-        itemBuilder: (context, index) {
-          double screenWidth = MediaQuery.of(context).size.width;
-          return Container(
-            width: screenWidth * 0.9,
-            margin: EdgeInsets.only(bottom: 16),
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  offset: Offset(0, 4),
-                  blurRadius: 6,
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                // Left Date Container
-                Container(
-                  width: 65,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Color(0xFF00156A),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "14",
-                        style: TextStyle(
-                          fontFamily: 'Montserrat',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        "Jan",
-                        style: TextStyle(
-                          fontFamily: 'Montserrat',
-                          fontWeight: FontWeight.w400,
-                          fontSize: 12,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(width: 12),
-
-                // Clock In/Out + Location
-                Expanded(
-                  child: Column(
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Text(AppConstants.clockInTwo,
-                              style: TextStyle(
-                                  fontFamily: 'Montserrat',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black)),
-                          Text(AppConstants.clockOut,
-                              style: TextStyle(
-                                  fontFamily: 'Montserrat',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black)),
-                        ],
-                      ),
-                      SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Text("09.30 AM",
-                              style: TextStyle(
-                                  fontFamily: 'Montserrat',
-                                  fontSize: 14,
-                                  color: Color(0xFF00156A))),
-                          Text("--/--/---",
-                              style: TextStyle(
-                                  fontFamily: 'Montserrat',
-                                  fontSize: 14,
-                                  color: Color(0xFF00156A))),
-                        ],
-                      ),
-                      SizedBox(height: 4),
-                      Row(
-
-                        children: [
-                          Image.asset(
-                            "assets/icons/location icon.png",
-                            height: 18,
-                            width: 18,
-                          ),
-                          SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              "Vadapalani, Chennai",
-                              style: TextStyle(
-                                fontFamily: 'Montserrat',
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                      // Date Box
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade900,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              DateFormat.d().format(missedDate),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold),
                             ),
-                          ),
-                        ],
+                            Text(
+                              DateFormat.MMM().format(missedDate),
+                              style: const TextStyle(color: Colors.white, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Details
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Missed Attendance",
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "$missedType on this day",
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const SizedBox(height: 6),
+                            Align(
+                              alignment: Alignment.bottomRight,
+                              child: Text(
+                                DateFormat('hh:mm a, MMM dd, yyyy').format(missedDate),
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-
-                // Eye icon and indicators
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          height: 8,
-                          width: 8,
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        SizedBox(width: 3),
-                        Text(
-                          "Missed",
-                          style: TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontSize: 10,
-                            color: Colors.redAccent,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        print("Details tapped");
-                      },
-                      child: Column(
-                        children: [
-                          Image.asset(
-                            "assets/icons/eye.png",
-                            height: 22,
-                            width: 22,
-                          ),
-                          SizedBox(height: 4),
-
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 6),
-
-                    // Orange Indicators
-                    Text(
-                      AppConstants.details,
-                      style: TextStyle(
-                        fontFamily: 'Montserrat',
-                        fontSize: 10,
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    SizedBox(height: 4),
-
-                    // Blue Dot Indicator (below orange)
-
-                  ],
-                ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
-    ));
+    );
   }
 }

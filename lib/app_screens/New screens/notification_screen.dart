@@ -123,7 +123,7 @@ class NotificationCard extends StatelessWidget {
               width: 92,
               height: 92,
               decoration: BoxDecoration(
-                color: AppColors.blue,
+                color: AppColors.primaryColor,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Center(

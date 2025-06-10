@@ -23,14 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             ListView(
               children: [
-                const WaveHeader(), // Top wave header
-
-                const SizedBox(height: 20),
-
-                // Login Header (already includes logo inside)
                 buildAuthHeaderFun(context, AppConstants.loginCaps),
-
-                const SizedBox(height: 30),
 
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -47,7 +40,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-
             // Loading overlay
             Obx(() {
               return authController.isLoading.value

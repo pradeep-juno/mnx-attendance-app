@@ -5,27 +5,28 @@ import '../../app_utils/app_colors.dart';
 import '../../app_utils/app_constants.dart';
 
 class ClockInScreen extends StatefulWidget {
-  final String actionType; // 'clock-in' or 'clock-out'
 
-  const ClockInScreen({super.key, required this.actionType});
+  const ClockInScreen({super.key});
 
   @override
   State<ClockInScreen> createState() => _ClockInScreenState();
 }
 
 class _ClockInScreenState extends State<ClockInScreen> {
-  final ClockInClockOutController controller = Get.put(ClockInClockOutController());
+  final ClockInClockOutController controller = Get.find<ClockInClockOutController>();
+
+
+  late final bool isClockIn;
 
   @override
   void initState() {
     super.initState();
-    controller.initLocationAndStatus(); // Initialize location & fetch status
+    final actionType = Get.arguments['actionType'];
+    isClockIn = actionType == 'clock-in';
   }
 
   @override
   Widget build(BuildContext context) {
-    final isClockIn = widget.actionType == 'clock-in';
-
     return SafeArea(
       child: Scaffold(
         backgroundColor: AppColors.white,
@@ -43,7 +44,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
               const Text(
                 AppConstants.clockInClockOut,
                 style: TextStyle(
-                  color: AppColors.blue,
+                  color: AppColors.primaryColor,
                   fontFamily: 'Montserrat',
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
@@ -187,7 +188,7 @@ class _ClockInScreenState extends State<ClockInScreen> {
                             fontFamily: 'Montserrat',
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.blue,
+                            color: AppColors.primaryColor,
                           ),
                         ),
                       ],
@@ -216,88 +217,11 @@ class _ClockInScreenState extends State<ClockInScreen> {
                             fontFamily: 'Montserrat',
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.blue,
+                            color: AppColors.primaryColor,
                           ),
                         ),
                       ],
                     ),
-
-                    const SizedBox(height: 20),
-
-                    // Face Login
-                    Row(
-                      children: [
-                        const Text(
-                          AppConstants.faceLogin,
-                          style: TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12,
-                            color: AppColors.textBlack,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: controller.pickImageFromCamera,
-                          child: Image.asset(
-                            'assets/icons/Camera.png',
-                            width: 20,
-                            height: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          AppConstants.clickHereForFaceLogin,
-                          style: TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 11,
-                            color: AppColors.blue,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Show Picked Image
-                    if (controller.imageFile.value != null)
-                      Stack(
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            height: 100,
-                            width: 100,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              image: DecorationImage(
-                                image: FileImage(controller.imageFile.value!),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: InkWell(
-                              onTap: controller.removeImage,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.5),
-                                  shape: BoxShape.circle,
-                                ),
-                                padding: const EdgeInsets.all(6),
-                                child: const Icon(
-                                  Icons.delete,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
                     // Submit Button
                     const SizedBox(height: 10),
                     SizedBox(

@@ -1,50 +1,65 @@
 class AppConstants {
   //text
-  static const vaadagai = "Vaadagai";
-
-  static const welcomeToVaadagai = "Welcome To Vaadagai";
-  static const getStartedDescription =
-      "Your Gateway to Buy, Sell, or Rent Properties Effortlessly!";
+  static const hrmAttendance = "HRM Attendance";
+  static const admin = "Admin";
   static const getStarted = "Get Started";
   static const skip = "Skip";
   static const back = "Back";
-  static const myActivities = "My Activities";
   static const name = "Name";
   static const enterYourName = "Enter Your Name ";
   static const mobileNumber = "Mobile Number";
   static const enterTenDigitNumber = "Enter 10 Digit Number ";
-  static const emailAddress = "Email Address";
-  static const enterEmailId = "Enter Your Email ID ";
+  static const edit = "Edit";
+  static const done = "Done";
+  static const myProfile = "My Profile";
+  static const profile = "Profile";
+  static const noData = "No Data";
+  static const deleteAccount = "Delete Account";
+  static const userName = "User Name";
+  static const deleteMsg = "Are you sure you want to delete this sale?";
+  static const yes = "Yes";
+  static const delete = "Delete Confirmation";
+  static const home = "Home";
+  static const next = "Next";
+  static const update = "Update";
+  static const String deleteAccountTitle = "Delete Account";
+  static const String deleteAccountConfirmationMessage =
+      "Are you sure you want to delete your account? This action cannot be undone.";
+  static const String cancel = "Cancel";
+  static const String confirm = "Confirm";
+  static const String accountDeletedSuccess = "Account deleted successfully";
+  static const String noUserToDelete = "No user found to delete.";
+  static const String failedToDeleteAccount = "Failed to delete account:";
+  static const String profileCaps = "PROFILE";
+  static const String dailyDetails = "Daily Details";
+
+
+
+
+
+
+
+  // OnBoard screen
+
+  static const onBoardingScreenOneDescriptionFirst =
+      "Plan Your Day, Own Your Time";
+  static const onBoardingScreenOneDescriptionSecond =
+      "Stay ahead with a smart scheduling system. Manage appointments, set priorities, and never miss a task with your personal productivity assistant.";
+  static const onBoardingScreenTwoDescriptionFirst = "Track Time, Boost Productivity";
+  static const onBoardingScreenTwoDescriptionSecond =
+      "Keep track of your work hours effortlessly. Monitor progress, balance tasks, and increase efficiency through precise time management.";
+  static const onBoardingScreenThreeDescriptionFirst =
+      "Understand Your Work Insights";
+  static const onBoardingScreenThreeDescriptionSecond =
+      "Gain deep insights into your daily performance. Review attendance logs, analyze productivity trends, and make informed decisions with real-time data.";
+
+  // Authentication
+
   static const password = "Password";
   static const enterYourPassword = "Enter Your Password ";
   static const confirmPassword = "Confirm Password";
-  static const registerAs = "Register as";
-  static const buyer = "Buyer";
-  static const agent = "Agent";
-  static const alreadyHaveAccountLogin = "Already have an account? Login ";
-  static const dontHaveAccountRegister = "Don't have an account? Register ";
-  static const registerCaps = "REGISTER";
-  static const loginCaps = "LOGIN";
-  static const loginAs = "Login as";
-  static const registerSmall = "Register";
-  static const loginSmall = "login";
-  static const onBoardingScreenOneDescriptionFirst =
-      "Helping You To Sell Your Property Effortlessly";
-  static const onBoardingScreenOneDescriptionSecond =
-      "Easily list your property and connect with top agents to make selling simple and hassle-free.";
-  static const onBoardingScreenTwoDescriptionFirst = "Create Your Profile";
-  static const onBoardingScreenTwoDescriptionSecond =
-      "Create a Stunning Profile.Add Your Property Details, and Sell or Rent it Effortlessly!";
-  static const onBoardingScreenThreeDescriptionFirst =
-      "Connect With Buyer/Renter";
-  static const onBoardingScreenThreeDescriptionSecond =
-      "Connect with buyers interested in your property through scheduled meetings. and make selling or renting your property effortless";
-  static const forSale = "For Sale";
-  static const forRent = "For Rent";
-  static const individualHouseForSale = "Individual House For Sale";
-  static const flatsApartments = "Flats/Apartments";
-  static const individualHouseForRent = "Individual House For Rent";
-
+  static const emailAddress = "Email Address";
+  static const enterEmailId = "Enter Your Email ID ";
   static const oldPassword = "Old Password";
   static const enterOldPassword = "Enter Old Password";
   static const newPassword = "New Password";
@@ -53,51 +68,35 @@ class AppConstants {
   static const position = "Position";
   static const enterYourPosition = "Enter Your Position";
   static const logoutSuccessFully = "Logout SuccessFully";
-
   static const logoutConfirmation = "Logout Confirmation";
   static const areYouSureYouWantToLogout = "Are You Sure You Want To Logout";
-
-  static const edit = "Edit";
-
-
-  static const done = "Done";
-
-  static const myProfile = "My Profile";
-  static const profile = "Profile";
+  static const registerCaps = "REGISTER";
+  static const loginCaps = "LOGIN";
+  static const registerSmall = "Register";
+  static const loginSmall = "login";
+  static const alreadyHaveAccountLogin = "Already have an account? Login ";
+  static const dontHaveAccountRegister = "Don't have an account? Register ";
   static const logout = "Logout";
-  static const noData = "No Data";
   static const changePassword = "Change Password";
-  static const deleteAccount = "Delete Account";
-  static const userName = "User Name";
-  static const deleteMsg = "Are you sure you want to delete this sale?";
-  static const yes = "Yes";
-  static const delete = "Delete Confirmation";
+
+
 
   //Images
   static const hrmLogo = "assets/images/logo.png";
   static const getStartedImage = "assets/icons/location icon.png";
-  static const onboardScreenImaegeOne = "assets/icons/location icon.png";
-  static const onboardScreenImaegeTwo = "assets/icons/location icon.png";
-  static const onboardScreenImageThree = "assets/icons/location icon.png";
+  static const onboardScreenImaegeOne = "assets/images/onboard_scrn_one.jpg";
+  static const onboardScreenImaegeTwo = "assets/images/onboard_scrn_two.jpg";
+  static const onboardScreenImageThree = "assets/images/onboard_scrn_three.jpg";
   static const agentHomeScreenImage = "assets/icons/location icon.png";
+  static const backImage = 'assets/icons/back.png';
+  static const iconCalenderImage = "assets/icons/calender.png";
+  static const iconDropDownImage = "assets/icons/Drop Down.png";
+
 
   //Icon Images
-  static const bathroomIconImage = "assets/icons/clock out 1.png";
-  static const bhkIconImage = "assets/icons/clock out 1.png";
-  static const floorIconImage = "assets/icons/clock out 1.png";
-  static const hashtagIconImage = "assets/icons/clock out 1.png";
-  static const pricetagIconImage = "assets/icons/clock out 1.png";
-  static const propertytypeIconImage = "assets/icons/clock out 1.png";
-  static const sqftIconImage = "assets/icons/clock out 1.png";
-  static const streetIconImage = "assets/icons/clock out 1.png";
-  static const unitIconImage = "assets/icons/clock out 1.png";
-  static const dollarIconImage = "assets/icons/clock out 1.png";
-  static const logoutIconImage = "assets/icons/clock out 1.png";
-  static const myProfileIConImage = "assets/icons/clock out 1.png";
-  static const switchIconImage = "assets/icons/clock out 1.png";
-  static const myHistoryIconImage = "assets/icons/clock out 1.png";
-  static const changePasswordIconImage = "assets/icons/clock out 1.png";
-  static const deleteIconImage = "assets/icons/clock out 1.png";
+
+  static const myProfileIConImage = "assets/icons/my_profile.png";
+
 
   //firestore database
 
@@ -108,19 +107,8 @@ class AppConstants {
 
   static const registerSuccessfully = "Register successfully";
 
-  //For Bottom Navigation
-  static const home = "Home";
-  static const next = "Next";
-  static const update = "Update";
 
-  static const String deleteAccountTitle = "Delete Account";
-  static const String deleteAccountConfirmationMessage =
-      "Are you sure you want to delete your account? This action cannot be undone.";
-  static const String cancel = "Cancel";
-  static const String confirm = "Confirm";
-  static const String accountDeletedSuccess = "Account deleted successfully";
-  static const String noUserToDelete = "No user found to delete.";
-  static const String failedToDeleteAccount = "Failed to delete account:";
+
 
 
 

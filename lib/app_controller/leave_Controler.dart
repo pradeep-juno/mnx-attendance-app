@@ -3,30 +3,23 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
-
-// Assuming these are your actual project imports
 import '../app_model/leave_model.dart';
 import '../app_router/app_router.dart';
 import '../app_utils/app_functions.dart';
 import '../storage_services/users_storage_service.dart';
 import '../app_utils/app_constants.dart';
-import 'auth_controller.dart'; // Explicitly import your AppConstants
-// You might also need to import where buildScaffoldSuccessMessage is defined,
-// or ensure it's a global function.
-
+import 'auth_controller.dart';
+import 'clockIn_ClockOut_Controller.dart';
 
 
 class LeaveController extends GetxController {
   final firebaseFirestore = FirebaseFirestore.instance;
   TextEditingController reasonController = TextEditingController();
 
-
   var annualLeaveCount = '0/12'.obs;
   var sickLeaveCount = '0/14'.obs;
   var compensationalLeaveCount = '0/03'.obs;
   var unpaidLeaveCount = '0/05'.obs;
-
-  // Observable variables for leave request form
   var selectedLeaveType = ''.obs;
   var startDate = DateTime.now().obs;
   var endDate = DateTime.now().obs;
@@ -35,9 +28,6 @@ class LeaveController extends GetxController {
   var totalLeaveDays = 0.obs;
   var leaveCreatedAt = ''.obs;
   var leaveStatus = ''.obs;
-
-
-  // Observable list to hold the leave requests fetched from Firestore
   var leaveRequests = <LeaveModel>[].obs;
 
   @override
@@ -57,7 +47,6 @@ class LeaveController extends GetxController {
     leaveRequests.clear(); // Clear the list of fetched requests
     print('Leave data reset to initial state.');
   }
-
   // Method to set the selected leave type
   void setLeaveType(String value) {
     selectedLeaveType.value = value;
@@ -117,7 +106,6 @@ class LeaveController extends GetxController {
   Future<void> submitLeaveRequest() async {
     if (!_validateForm()) return;
 
-
     final uId = UsersStorageService.getUserId() ?? '';
     final userName = UsersStorageService.getUserName() ?? '';
 
@@ -166,8 +154,6 @@ class LeaveController extends GetxController {
       print('Error submitting leave request: $e');
     }
   }
-
-
   // Private method to reset the form after submitting a leave request
   void _resetForm() {
     selectedLeaveType.value = '';
@@ -178,7 +164,6 @@ class LeaveController extends GetxController {
     reason.value = ''; // Clear the observable reason as well
     totalLeaveDays.value = 0;
   }
-
   // Method to count the annual leave days taken
   Future<void> getAnnualLeaveCount() async {
     // Filter the leaveRequests to find annual leave with "approved" status
@@ -251,7 +236,6 @@ class LeaveController extends GetxController {
     unpaidLeaveCount.value = '$totalUnpaidLeaveDays/$totalUnpaidLeaveAvailable';
   }
 
-
   // Method to fetch leave requests from Firestore
   Future<void> fetchLeaveRequests() async {
     try {
@@ -316,34 +300,55 @@ class LeaveController extends GetxController {
 // Your existing logout function, modified to reset LeaveController data
 Future<void> logout(BuildContext context, AuthController authController) async {
   try {
-    authController.isLoading.value = true; // Set loading state
+    authController.isLoading.value = true;
+
     await FirebaseAuth.instance.signOut();
     print(AppConstants.logoutSuccessFully);
 
-    // 🧹 Clear SharedPreferences to remove user data
+    //  Clear SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     print('SharedPreferences cleared.');
 
-    // Reset leave data in LeaveController immediately after logout
-    // Ensure LeaveController is registered before trying to find it
+    // Reset LeaveController if available
     if (Get.isRegistered<LeaveController>()) {
       Get.find<LeaveController>().resetLeaveData();
       print('LeaveController data reset after logout.');
-    } else {
-      print('LeaveController not registered, cannot explicitly reset data.');
     }
 
-    // ✅ Show success message
+    //  Reset ClockInClockOutController if available
+    if (Get.isRegistered<ClockInClockOutController>()) {
+      final clockController = Get.find<ClockInClockOutController>();
+
+      // Clear local session state
+      clockController.isClockedIn.value = false;
+      clockController.currentClockLogDocId.value = null;
+      clockController.clockInTime.value = null;
+      clockController.clockOutTime.value = null;
+
+      // Clear local storage (but not Firestore data)
+      await UsersStorageService.saveClockInStatus(false);
+      await UsersStorageService.saveCurrentClockLogId(null);
+
+      // Cancel any scheduled reminders
+      clockController.cancelReminders();
+
+      print('ClockInClockOutController session cleared after logout.');
+    }
+
     buildScaffoldSuccessMessage(context, AppConstants.logoutSuccessFully);
 
-    // 🔄 Go to login screen and remove all previous routes
+    // Navigate back to login screen
     Get.offAllNamed(AppRouter.LOGIN_SCREEN);
   } catch (e) {
     print('Error during logout: $e');
-    Get.snackbar('Error', 'Failed to logout: $e',
-        snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.shade100);
+    Get.snackbar(
+      'Error',
+      'Failed to logout: $e',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.shade100,
+    );
   } finally {
-    authController.isLoading.value = false; // Reset loading state
+    authController.isLoading.value = false;
   }
 }

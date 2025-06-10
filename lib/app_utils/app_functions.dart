@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 import '../app_controller/auth_controller.dart';
 import '../app_router/app_router.dart';
 import 'app_colors.dart';
@@ -11,7 +12,7 @@ import 'app_constants.dart';
 buildVaadagaiLogo(BuildContext context, String image,
     {required double height, required double width}) {
   return ClipRRect(
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.circular(20),
     child: Image.asset(
       image,
       height: height,
@@ -30,10 +31,11 @@ buildSizedBoxWidthFun(BuildContext context, {required double width}) {
   );
 }
 
-Widget buildImageFun(BuildContext context, String image,
+
+Widget  buildImageFun(BuildContext context, String image,
     {double? height, double? width, Color? color}) {
   return FutureBuilder(
-    future: precacheImage(NetworkImage(image), context),
+    future: precacheImage(AssetImage(image), context),
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.done) {
         return Image.asset(
@@ -90,17 +92,16 @@ buildTextFun(
           child: Text(
             text,
             textAlign: largetext ? TextAlign.center : TextAlign.start,
-            style: GoogleFonts.poppins(
-              fontSize: fontSize,
-              fontWeight: fontWeight,
-              color: color,
-            ),
+              style: GoogleFonts.montserrat(
+                fontSize: fontSize,
+                fontWeight: fontWeight,
+                color: color,
+              )
           ),
         ),
       ],
     ),
   );
-
 }
 
 Widget buildContainerButtonFun(
@@ -118,7 +119,7 @@ Widget buildContainerButtonFun(
   bool showIcon = false,
   bool centerText = true,
   double borderRadius = 32,
-  Color? circleTextColor = AppColors.orange,
+  Color? circleTextColor = AppColors.primaryColor,
   // New parameter to control text alignment
 }) {
   return GestureDetector(
@@ -143,7 +144,7 @@ Widget buildContainerButtonFun(
           if (showIcon) ...[
             Icon(
               Icons.add,
-              color: AppColors.orange,
+              color: AppColors.primaryColor,
               size: 24,
             ),
             buildSizedBoxWidthFun(context, width: 5),
@@ -163,91 +164,6 @@ Widget buildContainerButtonFun(
   );
 }
 
-// Widget buildTextFormFieldFun(
-//     {required BuildContext context,
-//     required String text,
-//     required String hintText,
-//     TextEditingController? controller,
-//     bool isSmallSize = true,
-//     double? fontSize,
-//     TextInputType? keyboardType,
-//     List<TextInputFormatter>? inputFormatters,
-//     bool isPassword = false,
-//     String? prefixImage,
-//     bool isHeightSize = true}) {
-//   bool obscureText = isPassword;
-//   return Column(
-//     crossAxisAlignment: CrossAxisAlignment.start,
-//     children: [
-//       // Field Label
-//       buildTextFun(
-//         context,
-//         text,
-//         fontSize: 16,
-//         fontWeight: FontWeight.w500,
-//         color: Colors.black,
-//       ),
-//       buildSizedBoxHeightFun(context, height: 6),
-//       StatefulBuilder(
-//         builder: (context, setState) {
-//           return Container(
-//             height: isHeightSize ? 56 : 194,
-//             width: 343,
-//             decoration: BoxDecoration(
-//               borderRadius: BorderRadius.circular(32.0),
-//               border: Border.all(color: Colors.grey),
-//             ),
-//             child: TextFormField(
-//               controller: controller,
-//               keyboardType: keyboardType,
-//               inputFormatters: inputFormatters,
-//               obscureText: isPassword ? obscureText : false,
-//               maxLines: isHeightSize ? 1 : null,
-//               // Single line for small size, multi-line otherwise
-//               maxLength: isHeightSize ? null : 500,
-//               decoration: InputDecoration(
-//                 hintText: hintText,
-//                 border: InputBorder.none,
-//                 hintStyle: TextStyle(
-//                   fontSize: fontSize ?? 14,
-//                   color: AppColors.grey,
-//                 ),
-//                 contentPadding: const EdgeInsets.symmetric(
-//                   vertical: 16.0, // Adjust padding to align the text vertically
-//                   horizontal: 16.0,
-//                 ),
-//                 prefixIcon: prefixImage != null
-//                     ? Padding(
-//                         padding: const EdgeInsets.all(
-//                             12.0), // Adjust padding as needed
-//                         child: buildImageFun(context, prefixImage,
-//                             height: 20, width: 20))
-//                     : null,
-//                 suffixIcon: isPassword
-//                     ? IconButton(
-//                         icon: Icon(
-//                           obscureText ? Icons.visibility_off : Icons.visibility,
-//                           color: Colors.grey,
-//                         ),
-//                         onPressed: () {
-//                           setState(() {
-//                             obscureText = !obscureText;
-//                           });
-//                         },
-//                       )
-//                     : null,
-//               ),
-//               style: const TextStyle(
-//                 overflow: TextOverflow
-//                     .ellipsis, // Ensures text does not overflow the field
-//               ),
-//             ),
-//           );
-//         },
-//       ),
-//     ],
-//   );
-// }
 
 Widget buildTextFormFieldFun({
   required BuildContext context,
@@ -281,7 +197,7 @@ Widget buildTextFormFieldFun({
         text,
         fontSize: 16,
         fontWeight: FontWeight.w500,
-        color: textColors ? Colors.black : AppColors.orange,
+        color: textColors ? Colors.black : AppColors.primaryColor,
       ),
       buildSizedBoxHeightFun(context, height: 6),
       StatefulBuilder(
@@ -295,7 +211,7 @@ Widget buildTextFormFieldFun({
             width: isWidthSize ? 343 : 166,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(borderRadius),
-              border: Border.all(color: AppColors.blue),
+              border: Border.all(color: AppColors.primaryColor),
             ),
             child: dropdown
                 ? Obx(() {
@@ -368,12 +284,12 @@ Widget buildTextFormFieldFun({
                                   width: 20,
                                   color: prefixColor
                                       ? AppColors.black
-                                      : AppColors.orange),
+                                      : AppColors.primaryColor),
                             )
                           : null,
                       suffixIcon: isPassword
                           ? IconButton(
-                              icon: Icon(
+                              icon: Icon (
                                 obscureText
                                     ? Icons.visibility_off
                                     : Icons.visibility,
@@ -507,7 +423,7 @@ buildLoginButtonFun(BuildContext context, AuthController authController) {
           width: MediaQuery.of(context).size.width,
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: AppColors.blue, onPressed: () {
+          color: AppColors.primaryColor, onPressed: () {
         print('Login button clicked!');
 
         authController.login(context);
@@ -530,54 +446,110 @@ buildLoginButtonFun(BuildContext context, AuthController authController) {
   );
 }
 
-buildLoginBodyFun(BuildContext context, AuthController authController) {
-  return Column(
-    children: [
-      buildTextFormFieldFun(
-        context: context,
-        text: AppConstants.emailAddress,
-        hintText: AppConstants.enterEmailId,
-        controller: authController.authEmailAddressController,
-        keyboardType: TextInputType.emailAddress,
-        isSmallSize: false,
-      ),
-      buildSizedBoxHeightFun(context, height: 20),
-      buildTextFormFieldFun(
-          context: context,
-          text: AppConstants.password,
-          hintText: AppConstants.enterYourPassword,
-          controller: authController.authPasswordController,
-          isPassword: true,
-          isSmallSize: false,
-          inputFormatters: [LengthLimitingTextInputFormatter(8)]),
-
-    ],
-  );
-}
-
-buildAuthHeaderFun(BuildContext context, String title) {
-  return Column(
-    children: [
-       buildVaadagaiLogo(
-        context,
-        AppConstants.hrmLogo,
-        height: 120,
-        width: 120
-      ),
-      Center(
-        child: buildTextFun(
+  buildLoginBodyFun(BuildContext context, AuthController authController) {
+    return Column(
+      children: [
+        buildVaadagaiLogo(
           context,
-          title,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: AppColors.black,
+          AppConstants.hrmLogo,
+          height: 100,
+          width: 120,
+        ),
+        buildTextFormFieldFun(
+          context: context,
+          text: AppConstants.emailAddress,
+          hintText: AppConstants.enterEmailId,
+          controller: authController.authEmailAddressController,
+          keyboardType: TextInputType.emailAddress,
+          isSmallSize: false,
+        ),
+        buildSizedBoxHeightFun(context, height: 20),
+        buildTextFormFieldFun(
+            context: context,
+            text: AppConstants.password,
+            hintText: AppConstants.enterYourPassword,
+            controller: authController.authPasswordController,
+            isPassword: true,
+            isSmallSize: false,
+            inputFormatters: [LengthLimitingTextInputFormatter(8)]),
+
+      ],
+    );
+  }
+
+// buildAuthHeaderFun(BuildContext context, String title) {
+//   return Column(
+//     children: [
+//        buildVaadagaiLogo(
+//         context,
+//         AppConstants.hrmLogo,
+//         height: 120,
+//         width: 120
+//       ),
+//       Center(
+//         child: buildTextFun(
+//           context,
+//           title,
+//           fontSize: 24,
+//           fontWeight: FontWeight.bold,
+//           color: AppColors.black,
+//         ),
+//       ),
+//     ],
+//   );
+// }
+
+//-------------------Register Functions----------------------//
+
+Widget buildAuthHeaderFun(BuildContext context, String title) {
+  return Stack(
+    children: [
+      Container(
+        height: 200,
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors:  [AppColors.primaryColor, AppColors.lightPrimaryColor],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+      Positioned(
+        bottom: 0,
+        left: 0,
+        right: 0,
+        child: Container(
+          height: 30,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(32),
+              topRight: Radius.circular(32),
+            ),
+          ),
         ),
       ),
     ],
   );
 }
 
-//-------------------Register Functions----------------------//
+
 Widget buildCustomScrollbar({
   required Widget child,
   bool thumbVisibility = true,
@@ -603,7 +575,7 @@ buildRegisterButtonFun(BuildContext context, AuthController authController) {
             height: 50,
             width: MediaQuery.of(context).size.width,
             fontWeight: FontWeight.w500,
-            color: AppColors.blue, onPressed: () {
+            color: AppColors.primaryColor, onPressed: () {
           print('Register button clicked!');
           authController.register(context);
         }),
@@ -690,23 +662,15 @@ buildRegisterBodyFun(BuildContext context, AuthController authController) {
 }
 // top logo image function
 
-buildTopLogoFun(BuildContext context, String imageUrl,
-    {double height = 46, double width = 52}) {
-  return Align(
-    alignment:
-        Alignment.topLeft, // Ensures the logo is aligned to the top-left corner
-    child: Padding(
-      padding: const EdgeInsets.only(
-          top: 8, left: 26), // Padding from the top and left
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(4), // Border radius of 4
-        child: Image.asset(
-          imageUrl,
-          height: height,
-          width: width,
-          fit: BoxFit.cover, // Adjust BoxFit if needed
-        ),
-      ),
+Widget buildTopLogoFun(BuildContext context, String imageUrl,
+    {double height = 100, double width = 100}) {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(4), // Optional, keeps square corner
+    child: Image.asset(
+      imageUrl,
+      height: height,
+      width: width,
+      fit: BoxFit.contain, // Better for logos
     ),
   );
 }
@@ -773,86 +737,6 @@ Widget loadingProgress(BuildContext context) {
   );
 }
 
-// void logout(BuildContext context) {
-//   Get.dialog(
-//     Stack(
-//       children: [
-//         // Blurred Background
-//         BackdropFilter(
-//           filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-//           child: Container(
-//             color: Colors.black
-//                 .withValues(alpha: 0.5), // Optional: Add a semi-transparent overlay
-//           ),
-//         ),
-//
-//         // Dialog Box
-//         Center(
-//           child: AlertDialog(
-//             contentPadding: EdgeInsets.all(20),
-//             shape: RoundedRectangleBorder(
-//               borderRadius: BorderRadius.circular(15),
-//             ),
-//             title: Center(
-//               child: Text(
-//                 'Want to Logout?',
-//                 style: TextStyle(
-//                   fontWeight: FontWeight.bold,
-//                   fontSize: 18,
-//                 ),
-//               ),
-//             ),
-//             content: Row(
-//               mainAxisAlignment: MainAxisAlignment.center,
-//                children: [
-//                 // Tick Icon Container for confirming logout
-//                 Container(
-//                   decoration: BoxDecoration(
-//                     border: Border.all(
-//                       color:
-//                           AppColors.primaryBlue, // Border color for tick icon
-//                       width: 2,
-//                     ),
-//                     borderRadius: BorderRadius.circular(8),
-//                   ),
-//                   child: IconButton(
-//                     icon: Icon(Icons.check),
-//                     color: AppColors.primaryBlue,
-//                     onPressed: () {
-//                       Get.toNamed(
-//                         AppRouter.LOGIN_SCREEN,
-//                       );
-//                       buildScaffoldSuccessMessage(
-//                           context, "Logged Out Successfully");
-//                     },
-//                   ),
-//                 ),
-//
-//                 SizedBox(width: 20), // Space between icons
-//
-//                 Container(
-//                   decoration: BoxDecoration(
-//                     color: AppColors.orange, // Background color for close icon
-//                     borderRadius: BorderRadius.circular(8),
-//                   ),
-//                   child: IconButton(
-//                     icon: Icon(Icons.close),
-//                     color: Colors.white,
-//                     onPressed: () {
-//                       Get.back();
-//                     },
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ],
-//     ),
-//     barrierColor: Colors
-//         .transparent, // Ensure background is fully visible for blur effect
-//   );
-// }
 
 
 
@@ -972,7 +856,7 @@ buildAgentChangePasswordButtonFun(
             height: 50,
             width: MediaQuery.of(context).size.width,
             fontWeight: FontWeight.w500,
-            color: AppColors.orange, onPressed: () {
+            color: AppColors.primaryColor, onPressed: () {
               print('Done button clicked!');
               authController.changePassword(context);
               Get.find<AuthController>().changePassword(context);
@@ -1045,6 +929,7 @@ class WaveHeader extends StatelessWidget {
     );
   }
 }
+
 class WaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -1070,3 +955,76 @@ class WaveClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
+
+
+
+
+Widget buildClockInAndOutReminder(String title, String message) {
+  return AlertDialog(
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    contentPadding: const EdgeInsets.all(16),
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Lottie animation at the top
+          SizedBox(
+            height: Get.height * 0.2,
+            child: Lottie.asset(
+              'assets/images/clockticking.json',
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Title
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: Get.width * 0.05,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF00156A),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Message
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: Get.width * 0.04,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Okay Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Get.back(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00156A),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: const Text(
+                "Okay",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.backgroundWhite,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+    backgroundColor: Colors.white,
+  );
+}
+

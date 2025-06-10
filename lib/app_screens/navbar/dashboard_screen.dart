@@ -10,8 +10,10 @@ import '../../app_utils/app_colors.dart';
 import '../../app_utils/app_constants.dart';
 import '../../app_utils/app_functions.dart';
 import '../../storage_services/users_storage_service.dart';
-import '../New screens/clockIn_Screen.dart';
+
 import '../New screens/notification_screen.dart';
+
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -26,6 +28,21 @@ final AdminMessageController adminMessageController = Get.put(AdminMessageContro
 
   final String userName = UsersStorageService.getUserName() ?? 'User';
   final String position = UsersStorageService.getUserPosition() ?? 'Position';
+
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    leaveController.fetchLeaveRequests();
+    final clockController = Get.find<ClockInClockOutController>();
+    clockController.scheduleClockInReminder();
+    clockController.scheduleClockOutReminder();
+    clockInClockcontroller.getMissedAttendanceRecords(
+      DateTime.now().subtract(const Duration(days: 7)),
+      DateTime.now(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +67,9 @@ final AdminMessageController adminMessageController = Get.put(AdminMessageContro
             SizedBox(width: 16),
             InkWell(
               onTap: () {
-                     Get.toNamed(AppRouter.PROFILE_SCREEN);
+                Get.toNamed(AppRouter.AGENT_PROFILE_SCREEN);
               },
-                child: Image.asset("assets/icons/profile.png",height: 25,width: 25)),
+                child: Image.asset("assets/icons/my_profile.png",height: 25,width: 25)),
             SizedBox(width: 16), // spacing from the edge
           ],
         ),
@@ -63,6 +80,10 @@ final AdminMessageController adminMessageController = Get.put(AdminMessageContro
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(35),
                 topRight: Radius.circular(35),
+              ),
+              border: Border.all(
+                color: AppColors.black,
+                width: 0.5,
               ),
             ),
             child: Padding(
@@ -80,98 +101,132 @@ final AdminMessageController adminMessageController = Get.put(AdminMessageContro
                 ],
               ),
                 const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Clock In Container
-                      GestureDetector(
-                        onTap: () {
-                          if (clockInClockcontroller.clockInTime.value == null) {
-                            // Navigate or open clock-in screen
-                            Get.to(() => ClockInScreen(actionType: 'clock-in'));
-                          }
-                        },
-                        child: Container(
-                          height: 41,
-                          width: 142,
-                          decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.all(Radius.circular(5.0)),
-                            color: clockInClockcontroller.clockInTime.value == null
-                                ? AppColors.white
-                                : Colors.grey.shade200, // disable look if already clocked in
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Image.asset("assets/icons/clock out 2.png", height: 14, width: 14),
-                              Obx(() {
-                                final time = clockInClockcontroller.clockInTime.value;
-                                final formattedTime = time != null
-                                    ? DateFormat('hh:mm a').format(time)
-                                    : "Not In";
-                                return Text(
-                                  formattedTime,
-                                  style: const TextStyle(
-                                    fontFamily: 'Montserrat',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                    color: AppColors.blue,
-                                  ),
-                                );
-                              }),
-                               Image.asset("assets/icons/Drop Down.png", height: 21, width: 21),
-                            ],
-                          ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // --- Clock In Container ---
+                    Obx(() => GestureDetector( // Wrapped with Obx to react to changes in controller's state
+                      onTap: () {
+                        // Only allow navigation to ClockInScreen if currently NOT clocked in
+                        if (!clockInClockcontroller.isClockedIn.value) {
+                          Get.toNamed(AppRouter.CLOCK_IN_SCREEN, arguments: {'actionType': 'clock-in'});
+                        } else {
+                          // Provide feedback if already clocked in
+                          Get.snackbar(
+                            "Already Clocked In",
+                            "You are already clocked in for the day.",
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.amber.shade700,
+                            colorText: Colors.white,
+                          );
+                        }
+                      },
+                      child: Container(
+                        height: 41,
+                        width: 142,
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.all(Radius.circular(5.0)),
+                          // Change color based on clock-in status
+                          color: !clockInClockcontroller.isClockedIn.value
+                              ? AppColors.white // Enabled color
+                              : Colors.grey.shade200, // Disabled color
+                          boxShadow: !clockInClockcontroller.isClockedIn.value
+                              ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5, offset: const Offset(0, 2))]
+                              : null, // No shadow when disabled
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Image.asset("assets/icons/clock out 2.png", height: 14, width: 14),
+                            // Use Obx for text to update when clockInTime changes
+                            Obx(() {
+                              final time = clockInClockcontroller.clockInTime.value;
+                              final formattedTime = time != null
+                                  ? DateFormat('hh:mm a').format(time)
+                                  : "Clock In"; // More intuitive text
+                              return Text(
+                                formattedTime,
+                                style: const TextStyle(
+                                  fontFamily: 'Montserrat',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                  color: AppColors.primaryColor,
+                                ),
+                              );
+                            }),
+                            Image.asset("assets/icons/Drop Down.png", height: 21, width: 21),
+                          ],
                         ),
                       ),
+                    )),
 
-                      // Clock Out Container
-                      GestureDetector(
-                        onTap: () {
-                          if (clockInClockcontroller.clockInTime.value != null &&
-                              clockInClockcontroller.clockOutTime.value == null) {
-                            // Only allow if clock-in is already done
-                            Get.to(() => ClockInScreen(actionType: 'clock-out'));
-                          }
-                        },
-                        child: Container(
-                          height: 41,
-                          width: 142,
-                          decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.all(Radius.circular(5.0)),
-                            color: clockInClockcontroller.clockInTime.value != null &&
-                                clockInClockcontroller.clockOutTime.value == null
-                                ? AppColors.white
-                                : Colors.grey.shade200, // disabled look if not allowed
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Image.asset("assets/icons/clock out 1.png", height: 14, width: 14),
-                              Obx(() {
-                                final time = clockInClockcontroller.clockOutTime.value;
-                                final formattedTime = time != null
-                                    ? DateFormat('hh:mm a').format(time)
-                                    : "Not Out";
-                                return Text(
-                                  formattedTime,
-                                  style: const TextStyle(
-                                    fontFamily: 'Montserrat',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                    color: AppColors.blue,
-                                  ),
-                                );
-                              }),
-                              Image.asset("assets/icons/Drop Down.png", height: 21, width: 21),
-                            ],
-                          ),
+                    // --- Clock Out Container ---
+                    Obx(() => GestureDetector( // Wrapped with Obx to react to changes in controller's state
+                      onTap: () {
+                        // Allow navigation only if clocked in AND not yet clocked out for the current session
+                        if (clockInClockcontroller.isClockedIn.value &&
+                            clockInClockcontroller.clockOutTime.value == null) {
+                          Get.toNamed(AppRouter.CLOCK_IN_SCREEN, arguments: {'actionType': 'clock-out'});
+                        } else if (!clockInClockcontroller.isClockedIn.value) {
+                          Get.snackbar(
+                            "Action Required",
+                            "Please Clock In first.",
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.red.shade700,
+                            colorText: Colors.white,
+                          );
+                        } else if (clockInClockcontroller.clockOutTime.value != null) {
+                          Get.snackbar(
+                            "Already Clocked Out",
+                            "You have already clocked out for this session.",
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.green.shade700,
+                            colorText: Colors.white,
+                          );
+                        }
+                      },
+                      child: Container(
+                        height: 41,
+                        width: 142,
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.all(Radius.circular(5.0)),
+                          // Change color based on clock-out eligibility
+                          color: clockInClockcontroller.isClockedIn.value &&
+                              clockInClockcontroller.clockOutTime.value == null
+                              ? AppColors.white // Enabled color
+                              : Colors.grey.shade200, // Disabled color
+                          boxShadow: clockInClockcontroller.isClockedIn.value &&
+                              clockInClockcontroller.clockOutTime.value == null
+                              ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5, offset: const Offset(0, 2))]
+                              : null, // No shadow when disabled
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Image.asset("assets/icons/clock out 1.png", height: 14, width: 14),
+                            // Use Obx for text to update when clockOutTime changes
+                            Obx(() {
+                              final time = clockInClockcontroller.clockOutTime.value;
+                              final formattedTime = time != null
+                                  ? DateFormat('hh:mm a').format(time)
+                                  : "Clock Out"; // More intuitive text
+                              return Text(
+                                formattedTime,
+                                style: const TextStyle(
+                                  fontFamily: 'Montserrat',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                  color: AppColors.primaryColor,
+                                ),
+                              );
+                            }),
+                            Image.asset("assets/icons/Drop Down.png", height: 21, width: 21),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-
-
+                    )),
+                  ],
+                ),
                   const SizedBox(height: 24),
                   Text(
                     AppConstants.quickInsights,
@@ -195,12 +250,12 @@ final AdminMessageController adminMessageController = Get.put(AdminMessageContro
                           },
                           child: Padding(
                             padding: const EdgeInsets.only(right: 6.0),
-                            child: _buildQuickInsightSections(
+                            child: Obx(() => _buildQuickInsightSections(
                               color: AppColors.missedAttendenceColor,
                               icon: "assets/icons/Missed attendence.png",
-                              count: "10",
+                              count: "${clockInClockcontroller.missedAttendanceCount.value}",
                               label: AppConstants.missedAttendence,
-                            ),
+                            ),)
                           ),
                         ),
                       ),
@@ -231,7 +286,7 @@ final AdminMessageController adminMessageController = Get.put(AdminMessageContro
                             padding: const EdgeInsets.only(left: 6.0),
                             child: Obx(() =>
                              _buildQuickInsightSections(
-                                color: AppColors.blue,
+                                color: AppColors.primaryColor,
                                 icon: "assets/icons/recent updates.png",
                                 count: "${adminMessageController.messages.length}",
                                 label: AppConstants.recentUpdates,
@@ -452,7 +507,7 @@ Widget buildSummary({
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-        border: Border.all(color: AppColors.blue),
+        border: Border.all(color: AppColors.primaryColor),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -506,7 +561,7 @@ Widget buildLeaveBalance({
       height: 136,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: AppColors.backgroundWhite,
         borderRadius: const BorderRadius.all(Radius.circular(10.0)),
         border: Border.all(color: color),
       ),
@@ -518,8 +573,8 @@ Widget buildLeaveBalance({
             height: 32,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: AppColors.textBlack.withOpacity(0.2)),
-              color: AppColors.containerColor.withOpacity(0.05),
+              border: Border.all(color: color) ,
+              color: AppColors.white.withValues(alpha: 0.5),
             ),
             child: Center(
               child: Image.asset(imagePath, height: 20, width: 20),

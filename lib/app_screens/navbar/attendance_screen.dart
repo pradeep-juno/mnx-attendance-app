@@ -1,9 +1,16 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:mnx_attendance_app/app_screens/profile_screen/agent_profile_screen.dart';
 
+import '../../app_controller/clockIn_ClockOut_Controller.dart';
+import '../../app_controller/leave_Controler.dart'; // Corrected import
 import '../../app_utils/app_colors.dart';
 import '../../app_utils/app_constants.dart';
-
+import '../../app_model/clockIn_clockOut_model.dart';
+import '../../app_model/leave_model.dart';
+import '../../storage_services/users_storage_service.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -13,8 +20,242 @@ class AttendanceScreen extends StatefulWidget {
 }
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
-
   int touchedIndex = -1;
+  final ClockInClockOutController _clockController = Get.find<ClockInClockOutController>();
+  final LeaveController _leaveController = Get.find<LeaveController>();
+  List<Map<String, dynamic>> finalDailyDetails = [];
+
+  String? _currentUserId;
+  DateTime _startDate = DateTime.now();
+  DateTime _endDate = DateTime.now();
+  List<ClockModel> _weeklyAttendanceRecords = [];
+  List<LeaveModel> _approvedLeaveRecords = [];
+
+
+  List<Map<String, dynamic>> _buildFinalDailyDetails() {
+    List<Map<String, dynamic>> details = [];
+    Set<String> addedDates = {};
+
+    // Add attendance records
+    for (var record in _weeklyAttendanceRecords) {
+      final date = DateTime(record.clockInTime.year, record.clockInTime.month, record.clockInTime.day);
+      final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+      addedDates.add(formattedDate);
+
+      details.add({
+        'date': date,
+        'type': 'attendance',
+        'status': _clockController.getAttendanceStatus(record),
+        'record': record,
+      });
+    }
+
+    // Add leave records
+    for (var leave in _approvedLeaveRecords) {
+      for (DateTime d = leave.startDate;
+      !d.isAfter(leave.endDate);
+      d = d.add(const Duration(days: 1))) {
+        final normalized = DateTime(d.year, d.month, d.day);
+        if (_startDate.isAfter(normalized) || _endDate.isBefore(normalized)) continue;
+        details.add({
+          'date': normalized,
+          'type': 'leave',
+          'status': 'Leave',
+          'record': leave,
+          'leaveType': leave.leaveType,
+        });
+      }
+    }
+    // Fill remaining dates as absent
+    for (DateTime d = _startDate;
+    !d.isAfter(_endDate);
+    d = d.add(const Duration(days: 1))) {
+      final formattedDate = DateFormat('yyyy-MM-dd').format(d);
+      if (!addedDates.contains(formattedDate)) {
+        details.add({
+          'date': d,
+          'type': 'absent',
+          'status': 'Absent',
+        });
+      }
+    }
+    // Sort by date
+    details.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+    return details;
+  }
+
+  Map<String, int> _attendanceSummary = {
+    'Present': 0,
+    'Late Arrival': 0,
+    'Early Departure': 0,
+    'Over Time': 0,
+    'Holiday': 0,
+    'Holiday Working': 0,
+    'Leave': 0,
+    'Absent': 0,
+  };
+  // Declare a Worker to hold the listener, so it can be disposed
+  late Worker _leaveRequestsWorker; // <-- ADD THIS LINE
+  @override
+  void initState() {
+    super.initState();
+    _initializeUserAndDates();
+
+    // --- ADD THIS BLOCK ---
+    // This listener will trigger _fetchAttendanceAndLeaveData
+    // whenever the leaveRequests list in LeaveController changes.
+    _leaveRequestsWorker = ever(_leaveController.leaveRequests, (_) {
+      if (mounted) {
+        print(">>> AttendanceScreen: LeaveController's leaveRequests changed. Re-fetching data.");
+        _fetchAttendanceAndLeaveData();
+      }
+    });
+  }
+  @override
+  void dispose() {
+    _leaveRequestsWorker.dispose(); // Dispose the listener to prevent memory leaks
+    super.dispose();
+  }
+  void _initializeUserAndDates() {
+    _currentUserId = UsersStorageService.getUserId();
+    if (_currentUserId == null) {
+      print("Error: User ID not found in storage. Cannot fetch attendance.");
+      return;
+    }
+    _startDate = _findFirstDayOfWeek(DateTime.now());
+    _endDate = _startDate.add(const Duration(days: 6));
+    _fetchAttendanceAndLeaveData(); // Call a combined fetch method
+  }
+
+  DateTime _findFirstDayOfWeek(DateTime date) {
+    DateTime firstDay = date.subtract(Duration(days: date.weekday - 1));
+    return DateTime(firstDay.year, firstDay.month, firstDay.day);
+  }
+
+  Future<void> _fetchAttendanceAndLeaveData() async {
+    if (_currentUserId == null) return;
+
+    print("--- AttendanceScreen: _fetchAttendanceAndLeaveData called ---");
+    print("Current User ID: $_currentUserId");
+    print("Current Date Range: ${_startDate.toLocal().toIso8601String()} to ${_endDate.toLocal().toIso8601String()}");
+
+    try {
+      final clockRecords = await _clockController.getAttendanceRecordsForUser(
+        userId: _currentUserId!,
+        startDate: _startDate,
+        endDate: _endDate,
+      );
+      print("Number of raw clock records fetched for range: ${clockRecords.length}");
+
+
+      await _leaveController.fetchLeaveRequests(); // Ensure controller's data is fresh
+      print("Total leave requests in LeaveController: ${_leaveController.leaveRequests.length}");
+
+      final approvedLeaves = _leaveController.leaveRequests.where((leave) {
+        final isApproved = leave.leaveStatus == 'Approved';
+        // Check for overlap, allowing for leaves that start/end on the boundary days
+        final isWithinRange = (
+            leave.startDate.isBefore(_endDate.add(const Duration(days: 1))) &&
+                leave.endDate.isAfter(_startDate.subtract(const Duration(days: 1)))
+        );
+        print("  Checking leave: ${leave.id}, Type: ${leave.leaveType}, Status: ${leave.leaveStatus}, Start: ${leave.startDate}, End: ${leave.endDate}");
+        print("    Is Approved? $isApproved, Is Within Range? $isWithinRange");
+        return isApproved && isWithinRange;
+      }).toList();
+
+      print("Number of FILTERED APPROVED leaves for current range: ${approvedLeaves.length}");
+      if (approvedLeaves.isNotEmpty) {
+        for (var leave in approvedLeaves) {
+          print("  -> Approved Leave ID: ${leave.id}, Type: ${leave.leaveType}, Start: ${leave.startDate}, End: ${leave.endDate}");
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _weeklyAttendanceRecords = clockRecords;
+        _approvedLeaveRecords = approvedLeaves;
+        _calculateAttendanceSummary();
+        finalDailyDetails = _buildFinalDailyDetails();
+      });
+
+    } catch (e) {
+      Get.snackbar("Error", "Failed to fetch data: $e");
+      print("Failed to fetch attendance or leave data: $e");
+    }
+  }
+
+  void _calculateAttendanceSummary() {
+    _attendanceSummary = {
+      'Present': 0, 'Late Arrival': 0, 'Early Departure': 0, 'Over Time': 0,
+      'Holiday': 0, 'Holiday Working': 0, 'Leave': 0, 'Absent': 0,
+    };
+
+    Set<DateTime> processedDates = {};
+
+    for (var record in _weeklyAttendanceRecords) {
+      DateTime normalizedDate = DateTime(record.clockInTime.year, record.clockInTime.month, record.clockInTime.day);
+      if (normalizedDate.isAfter(_endDate) || normalizedDate.isBefore(_startDate)) continue;
+
+      String status = _clockController.getAttendanceStatus(record);
+      _attendanceSummary[status] = (_attendanceSummary[status] ?? 0) + 1;
+      processedDates.add(normalizedDate);
+    }
+
+    for (var leave in _approvedLeaveRecords) {
+      for (DateTime d = DateTime(leave.startDate.year, leave.startDate.month, leave.startDate.day);
+      d.isBefore(DateTime(leave.endDate.year, leave.endDate.month, leave.endDate.day).add(const Duration(days: 1)));
+      d = d.add(const Duration(days: 1)))
+      {
+        DateTime normalizedDate = DateTime(d.year, d.month, d.day);
+
+        if (normalizedDate.isAfter(_endDate) || normalizedDate.isBefore(_startDate)) continue;
+
+        if (!processedDates.contains(normalizedDate)) {
+          _attendanceSummary['Leave'] = (_attendanceSummary['Leave'] ?? 0) + 1;
+          processedDates.add(normalizedDate);
+        }
+      }
+    }
+
+    for (DateTime d = _startDate; d.isBefore(_endDate.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+      DateTime normalizedDate = DateTime(d.year, d.month, d.day);
+      if (!processedDates.contains(normalizedDate)) {
+        _attendanceSummary['Absent'] = (_attendanceSummary['Absent'] ?? 0) + 1;
+      }
+    }
+
+    print("Final Attendance Summary: $_attendanceSummary");
+  }
+
+
+  Future<void> _selectDateRange() async {
+    DateTime? pickedStartDate = await showDatePicker(
+      context: context,
+      initialDate: _startDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      helpText: 'Select Start Date',
+    );
+
+    if (pickedStartDate != null) {
+      DateTime? pickedEndDate = await showDatePicker(
+        context: context,
+        initialDate: _endDate,
+        firstDate: pickedStartDate,
+        lastDate: DateTime(2030),
+        helpText: 'Select End Date',
+      );
+
+      if (pickedEndDate != null) {
+        setState(() {
+          _startDate = DateTime(pickedStartDate.year, pickedStartDate.month, pickedStartDate.day);
+          _endDate = DateTime(pickedEndDate.year, pickedEndDate.month, pickedEndDate.day);
+
+        });
+        _fetchAttendanceAndLeaveData();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +283,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           GestureDetector(
                             onTap: () => Navigator.pop(context),
                             child: Image.asset(
-                              'assets/icons/back.png',
+                              AppConstants.backImage,
                               width: 24,
                               height: 24,
                             ),
@@ -54,56 +295,64 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            height: 41,
-                            width: 142,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                              color: AppColors.white,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Image.asset("assets/icons/calender.png", height: 14, width: 14),
-                                Text(
-                                  "21-apr-2025",
-                                  style: TextStyle(
-                                    fontFamily: 'Montserrat',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                    height: 1.0,
-                                    letterSpacing: 0.0,
-                                    color: AppColors.blue,
+                          // Start Date Picker
+                          GestureDetector(
+                            onTap: _selectDateRange,
+                            child: Container(
+                              height: 41,
+                              width: 142,
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.all(Radius.circular(5.0)),
+                                color: AppColors.white,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Image.asset(AppConstants.iconCalenderImage, height: 14, width: 14),
+                                  Text(
+                                    DateFormat('dd-MMM-yyyy').format(_startDate),
+                                    style: TextStyle(
+                                      fontFamily: 'Montserrat',
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                      height: 1.0,
+                                      letterSpacing: 0.0,
+                                      color: AppColors.primaryColor,
+                                    ),
                                   ),
-                                ),
-                                Image.asset("assets/icons/Drop Down.png", height: 21, width: 21),
-                              ],
+                                  Image.asset(AppConstants.iconDropDownImage, height: 21, width: 21),
+                                ],
+                              ),
                             ),
                           ),
-                          Container(
-                            height: 41,
-                            width: 142,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.all(Radius.circular(5.0)),
-                              color: AppColors.white,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Image.asset("assets/icons/calender.png", height: 14, width: 14),
-                                Text(
-                                  "27-apr-2025",
-                                  style: TextStyle(
-                                    fontFamily: 'Montserrat',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                    height: 1.0,
-                                    letterSpacing: 0.0,
-                                    color: AppColors.blue,
+                          // End Date Picker
+                          GestureDetector(
+                            onTap: _selectDateRange,
+                            child: Container(
+                              height: 41,
+                              width: 142,
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.all(Radius.circular(5.0)),
+                                color: AppColors.white,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Image.asset(AppConstants.iconCalenderImage, height: 14, width: 14),
+                                  Text(
+                                    DateFormat('dd-MMM-yyyy').format(_endDate),
+                                    style: TextStyle(
+                                      fontFamily: 'Montserrat',
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                      height: 1.0,
+                                      letterSpacing: 0.0,
+                                      color: AppColors.primaryColor,
+                                    ),
                                   ),
-                                ),
-                                Image.asset("assets/icons/Drop Down.png", height: 21, width: 21),
-                              ],
+                                  Image.asset(AppConstants.iconDropDownImage, height: 21, width: 21),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -135,26 +384,26 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                       },
                                     ),
                                   ),
-                                  swapAnimationDuration: const Duration(milliseconds: 100),
-                                  swapAnimationCurve: Curves.easeInOut,
+                                  duration: const Duration(milliseconds: 100),
+                                  curve: Curves.easeInOut,
                                 )
                             ),
                             Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  "21 - Apr -2025",
-                                  style: TextStyle(
+                                  DateFormat('dd-MMM-yyyy').format(DateTime.now()),
+                                  style: const TextStyle(
                                     fontFamily: 'Montserrat',
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
                                     color: Colors.black,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
-                                  AppConstants.present,
-                                  style: TextStyle(
+                                  "${_attendanceSummary['Present'] ?? 0} ${AppConstants.present}",
+                                  style: const TextStyle(
                                     fontFamily: 'Montserrat',
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
@@ -172,232 +421,34 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       Wrap(
                         spacing: 20,
                         runSpacing: 14,
-                        children: [
-                          legendItem(Color(0xFF4CAF50), "Present"),
-                          legendItem(Color(0xFFFF9800), "Late Arrival"),
-                          legendItem(Color(0xFFFFC107), "Early Departure"),
-                          legendItem(Color(0xFF2196F3), "Over Time"),
-                          legendItem(Color(0xFF80CBC4), "Holiday"),
-                          legendItem(Color(0xFF3F51B5), "Holiday Working"),
-                          legendItem(Color(0xFF673AB7), "Leave"),
-                          legendItem(Color(0xFFF44336), "Absent"),
-                        ],
+                        children: _attendanceSummary.entries.map((entry) {
+                          Color color;
+                          switch (entry.key) {
+                            case 'Present': color = const Color(0xFF4CAF50); break;
+                            case 'Late Arrival': color = const Color(0xFFFF9800); break;
+                            case 'Early Departure': color = const Color(0xFFFFC107); break;
+                            case 'Over Time': color = const Color(0xFF2196F3); break;
+                            case 'Holiday': color = const Color(0xFF80CBC4); break;
+                            case 'Holiday Working': color = const Color(0xFF3F51B5); break;
+                            case 'Leave': color = const Color(0xFF673AB7); break; // Leave color
+                            case 'Absent': color = const Color(0xFFF44336); break;
+                            default: color = Colors.grey;
+                          }
+                          return legendItem(color, "${entry.key} (${entry.value})");
+                        }).toList(),
                       ),
 
                       const SizedBox(height: 24),
 
-                      /// >>>>> LISTVIEW BUILDER <<<<<
-
+                      /// >>>>> LISTVIEW BUILDER (Daily Attendance Details) <<<<<
+                      buildTextFun(context, AppConstants.dailyDetails,fontSize: 18,color:Colors.black ,fontWeight: FontWeight.bold),
+                      const SizedBox(height: 16),
+                      // Combine and display daily records and approved leaves
+                      _buildDailyDetailsList(),
                     ],
                   ),
                 ),
               ),
-              // SizedBox(height: 32,),
-              // Padding(
-              //   padding: const EdgeInsets.symmetric(horizontal: 16),
-              //   child: SizedBox(
-              //     height: 200,  // Adjust height as needed
-              //     child: /// >>>>> LISTVIEW BUILDER <<<<<
-              //     SizedBox(
-              //       height: 400, // Adjust height based on content or make it flexible
-              //       child: ListView.builder(
-              //         itemCount: 5,
-              //         itemBuilder: (context, index) {
-              //           double screenWidth = MediaQuery.of(context).size.width;
-              //           return Container(
-              //             width: screenWidth * 0.9,
-              //             margin: EdgeInsets.only(bottom: 16),
-              //             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              //             decoration: BoxDecoration(
-              //               color: Colors.white,
-              //               borderRadius: BorderRadius.circular(12),
-              //               boxShadow: [
-              //                 BoxShadow(
-              //                   color: Colors.black.withOpacity(0.05),
-              //                   offset: Offset(0, 4),
-              //                   blurRadius: 6,
-              //                 ),
-              //               ],
-              //             ),
-              //             child: Row(
-              //               children: [
-              //                 // Left Date Container
-              //                 Container(
-              //                   width: 65,
-              //                   height: 64,
-              //                   decoration: BoxDecoration(
-              //                     color: Color(0xFF00156A),
-              //                     borderRadius: BorderRadius.circular(10),
-              //                   ),
-              //                   child: Column(
-              //                     mainAxisAlignment: MainAxisAlignment.center,
-              //                     children: [
-              //                       Text(
-              //                         "14",
-              //                         style: TextStyle(
-              //                           fontFamily: 'Montserrat',
-              //                           fontWeight: FontWeight.bold,
-              //                           fontSize: 18,
-              //                           color: Colors.white,
-              //                         ),
-              //                       ),
-              //                       Text(
-              //                         "Jan",
-              //                         style: TextStyle(
-              //                           fontFamily: 'Montserrat',
-              //                           fontWeight: FontWeight.w400,
-              //                           fontSize: 12,
-              //                           color: Colors.white,
-              //                         ),
-              //                       ),
-              //                     ],
-              //                   ),
-              //                 ),
-              //
-              //                 SizedBox(width: 12),
-              //
-              //                 // Clock In/Out + Location
-              //                 Expanded(
-              //                   child: Column(
-              //                     crossAxisAlignment: CrossAxisAlignment.start,
-              //                     children: [
-              //                       Row(
-              //                         mainAxisAlignment: MainAxisAlignment.spaceAround,
-              //                         children: [
-              //                           Text(AppConstants.clockIn,
-              //                               style: TextStyle(
-              //                                   fontFamily: 'Montserrat',
-              //                                   fontSize: 14,
-              //                                   fontWeight: FontWeight.w600,
-              //                                   color: Colors.black)),
-              //                           Text(AppConstants.clockOut,
-              //                               style: TextStyle(
-              //                                   fontFamily: 'Montserrat',
-              //                                   fontSize: 14,
-              //                                   fontWeight: FontWeight.w600,
-              //                                   color: Colors.black)),
-              //                         ],
-              //                       ),
-              //                       SizedBox(height: 4),
-              //                       Row(
-              //                         mainAxisAlignment: MainAxisAlignment.spaceAround,
-              //                         children: [
-              //                           Text("09.30 AM",
-              //                               style: TextStyle(
-              //                                   fontFamily: 'Montserrat',
-              //                                   fontSize: 14,
-              //                                   color: Color(0xFF00156A))),
-              //                           Text("05.30 PM",
-              //                               style: TextStyle(
-              //                                   fontFamily: 'Montserrat',
-              //                                   fontSize: 14,
-              //                                   color: Color(0xFF00156A))),
-              //                         ],
-              //                       ),
-              //                       SizedBox(height: 4),
-              //                       Row(
-              //
-              //                         children: [
-              //                           Image.asset(
-              //                             "assets/icons/location icon.png",
-              //                             height: 18,
-              //                             width: 18,
-              //                           ),
-              //                           SizedBox(width: 4),
-              //                           Expanded(
-              //                             child: Text(
-              //                               "Vadapalani, Chennai",
-              //                               style: TextStyle(
-              //                                 fontFamily: 'Montserrat',
-              //                                 fontSize: 14,
-              //                                 color: Colors.grey[600],
-              //                               ),
-              //                               overflow: TextOverflow.ellipsis,
-              //                             ),
-              //                           ),
-              //                         ],
-              //                       ),
-              //                     ],
-              //                   ),
-              //                 ),
-              //
-              //                 // Eye icon and indicators
-              //                 Column(
-              //                   mainAxisAlignment: MainAxisAlignment.center,
-              //                   children: [
-              //                     GestureDetector(
-              //                       onTap: () {
-              //                         print("Details tapped");
-              //                       },
-              //                       child: Column(
-              //                         children: [
-              //                           Image.asset(
-              //                             "assets/icons/eye.png",
-              //                             height: 22,
-              //                             width: 22,
-              //                           ),
-              //                           SizedBox(height: 4),
-              //                           Text(
-              //                             AppConstants.details,
-              //                             style: TextStyle(
-              //                               fontFamily: 'Montserrat',
-              //                               fontSize: 10,
-              //                               color: Colors.blue,
-              //                               fontWeight: FontWeight.w600,
-              //                             ),
-              //                           ),
-              //                         ],
-              //                       ),
-              //                     ),
-              //                     SizedBox(height: 6),
-              //
-              //                     // Orange Indicators
-              //                     Row(
-              //                       children: [
-              //                         Container(
-              //                           height: 8,
-              //                           width: 8,
-              //                           margin: EdgeInsets.only(right: 4),
-              //                           decoration: BoxDecoration(
-              //                             color: Color(0xFFFF9800),
-              //                             borderRadius: BorderRadius.circular(2),
-              //                           ),
-              //                         ),
-              //                         Container(
-              //                           height: 8,
-              //                           width: 8,
-              //                           decoration: BoxDecoration(
-              //                             color: Color(0xFFFFC107),
-              //                             borderRadius: BorderRadius.circular(2),
-              //                           ),
-              //                         ),
-              //                       ],
-              //                     ),
-              //
-              //                     SizedBox(height: 4),
-              //
-              //                     // Blue Dot Indicator (below orange)
-              //                     Container(
-              //                       height: 8,
-              //                       width: 8,
-              //                       decoration: BoxDecoration(
-              //                         color: Color(0xFF2196F3),
-              //                         borderRadius: BorderRadius.circular(2),
-              //                       ),
-              //                     ),
-              //                   ],
-              //                 ),
-              //               ],
-              //             ),
-              //           );
-              //         },
-              //       ),
-              //
-              //     ),
-              //
-              //
-              //   ),
-              // ),
             ],
           ),
         ),
@@ -405,40 +456,168 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
+  Widget _buildDailyDetailsList() {
+    Map<DateTime, Map<String, dynamic>> dailyCombinedRecords = {};
 
-  /// PIE Chart sections
-  List<PieChartSectionData> showingSections() {
-    final List<Color> colors = [
-      Color(0xFFF44336),
-      Color(0xFF673AB7),
-      Color(0xFF80CBC4),
-      Color(0xFF2196F3),
-      Color(0xFFFFC107),
-      Color(0xFFFF9800),
-      Color(0xFF4CAF50),
-      Color(0xFF3F51B5),
-    ];
+    for (var record in _weeklyAttendanceRecords) {
+      DateTime normalizedDate = DateTime(record.clockInTime.year, record.clockInTime.month, record.clockInTime.day);
+      if (normalizedDate.isAfter(_endDate) || normalizedDate.isBefore(_startDate)) continue;
 
-    final List<double> values = [10, 20, 40, 70, 20, 20, 10, 10];
+      dailyCombinedRecords[normalizedDate] = {
+        'type': 'attendance',
+        'record': record,
+        'status': _clockController.getAttendanceStatus(record),
+      };
+    }
 
-    return List.generate(values.length, (i) {
-      final isTouched = i == touchedIndex;
-      final double radius = isTouched ? 50 : 40;
+    for (var leave in _approvedLeaveRecords) {
+      for (DateTime d = DateTime(leave.startDate.year, leave.startDate.month, leave.startDate.day);
+      d.isBefore(DateTime(leave.endDate.year, leave.endDate.month, leave.endDate.day).add(const Duration(days: 1)));
+      d = d.add(const Duration(days: 1)))
+      {
+        DateTime normalizedDate = DateTime(d.year, d.month, d.day);
+        if (normalizedDate.isAfter(_endDate) || normalizedDate.isBefore(_startDate)) continue;
 
-      return PieChartSectionData(
-        color: colors[i],
-        value: values[i],
-        title: '',
-        radius: radius,
-      );
-    });
+        if (!dailyCombinedRecords.containsKey(normalizedDate) ||
+            dailyCombinedRecords[normalizedDate]!['status'] == 'Absent') {
+          dailyCombinedRecords[normalizedDate] = {
+            'type': 'leave',
+            'record': leave,
+            'status': 'Leave',
+            'leaveType': leave.leaveType,
+          };
+        }
+      }
+    }
+
+    List<DateTime> allDatesInRange = [];
+    for (DateTime d = _startDate; d.isBefore(_endDate.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+      allDatesInRange.add(DateTime(d.year, d.month, d.day));
+
+    }
+    allDatesInRange.sort((a,b) => a.compareTo(b));
+
+    List<Map<String, dynamic>> finalDailyDetails = [];
+    for (DateTime date in allDatesInRange) {
+      if (dailyCombinedRecords.containsKey(date)) {
+        finalDailyDetails.add(dailyCombinedRecords[date]!);
+      } else {
+        finalDailyDetails.add({
+          'type': 'absent',
+          'date': date,
+          'status': 'Absent',
+        });
+      }
+    }
+
+    if (finalDailyDetails.isEmpty) {
+      return const Center(child: Text("No attendance or leave records found for this period."));
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: finalDailyDetails.length,
+      itemBuilder: (context, index) {
+        final entry = finalDailyDetails[index];
+        final entryDate = entry['type'] == 'absent' ? entry['date'] : (entry['type'] == 'attendance' ? (entry['record'] as ClockModel).clockInTime : (entry['record'] as LeaveModel).startDate);
+        final displayDate = DateFormat('EEEE, dd MMM').format(entryDate);
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  displayDate,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text("Status: ${entry['status']}"),
+                if (entry['type'] == 'attendance') ...[
+                  Text("Check-in Location: ${(entry['record'] as ClockModel).location}"),
+                  Text("Check-in: ${DateFormat('hh:mm a').format((entry['record'] as ClockModel).clockInTime)}"),
+                  if ((entry['record'] as ClockModel).clockOutTime != null)
+                    Text("Check-out: ${DateFormat('hh:mm a').format((entry['record'] as ClockModel).clockOutTime!)}"),
+                  if ((entry['record'] as ClockModel).locationOut != null)
+                    Text("Check-out Location: ${(entry['record'] as ClockModel).locationOut!}"),
+                ] else if (entry['type'] == 'leave') ...[
+                  Text("Leave Type: ${entry['leaveType']}"),
+                  Text("Reason: ${(entry['record'] as LeaveModel).reason}"),
+                  Text("Leave Duration: ${DateFormat('dd-MMM-yyyy').format((entry['record'] as LeaveModel).startDate)} - ${DateFormat('dd-MMM-yyyy').format((entry['record'] as LeaveModel).endDate)}"),
+                ] else if (entry['type'] == 'absent') ...[
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
+  List<PieChartSectionData> showingSections() {
+    final Map<String, Color> statusColors = {
+      'Present': const Color(0xFF4CAF50),
+      'Late Arrival': const Color(0xFFFF9800),
+      'Early Departure': const Color(0xFFFFC107),
+      'Over Time': const Color(0xFF2196F3),
+      'Holiday': const Color(0xFF80CBC4),
+      'Holiday Working': const Color(0xFF3F51B5),
+      'Leave': const Color(0xFF673AB7),
+      'Absent': const Color(0xFFF44336),
+    };
 
-  /// Legend widget
+    List<PieChartSectionData> sections = [];
+    _attendanceSummary.forEach((status, count) {
+      if (count > 0) {
+        final isTouched = statusColors.keys.toList().indexOf(status) == touchedIndex;
+        final double radius = isTouched ? 50 : 40;
+        final double fontSize = isTouched ? 16 : 12;
+        final FontWeight fontWeight = isTouched ? FontWeight.bold : FontWeight.normal;
+
+        sections.add(
+          PieChartSectionData(
+            color: statusColors[status] ?? Colors.grey,
+            value: count.toDouble(),
+            title: isTouched ? '${count} \n ${status}' : '',
+            radius: radius,
+            titleStyle: TextStyle(
+              fontSize: fontSize,
+              fontWeight: fontWeight,
+              color: Colors.white,
+            ),
+            titlePositionPercentageOffset: 0.55,
+          ),
+        );
+      }
+    });
+
+    if (sections.isEmpty) {
+      sections.add(
+        PieChartSectionData(
+          color: Colors.grey,
+          value: 100,
+          title: 'No Data',
+          radius: 40,
+          titleStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      );
+    }
+    return sections;
+  }
+
   Widget legendItem(Color color, String text) {
     return SizedBox(
-      width: 130, // Fixed width to make everything aligned nicely
+      width: 130,
       child: Row(
         children: [
           Container(
@@ -449,11 +628,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               color: color,
             ),
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'Montserrat',
                 fontSize: 12,
                 color: Colors.black,
@@ -465,7 +644,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       ),
     );
   }
-
 }
 
 class AttendanceHeader extends StatelessWidget {
@@ -487,7 +665,3 @@ class AttendanceHeader extends StatelessWidget {
     );
   }
 }
-
-
-
-

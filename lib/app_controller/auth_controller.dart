@@ -74,7 +74,7 @@ class AuthController extends GetxController {
           isLoading.value = false;
           buildScaffoldSuccessMessage(context, "Registered successfully");
           clearController();
-          Get.offNamed(AppRouter.ONBOARD_VIEW);
+          Get.offNamed(AppRouter.ONBOARD_SCREEN);
         } else {
           isLoading.value = false;
           buildScaffoldErrorMessage(context, "User creation failed.");
@@ -302,6 +302,7 @@ clearController();
     );
   }
 
+
   //-------------------------------CHANGE_PASSWORD_IN_FIRESTORE--------------------//
   Future<void> changePassword(BuildContext context) async {
     if (await validateChangePasswordField(context)) {
@@ -453,7 +454,6 @@ clearController();
     authLoginPasswordController.clear();
   }
 }
-
 
 
 

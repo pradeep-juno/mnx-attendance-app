@@ -7,9 +7,7 @@ class AdminMessageController extends GetxController {
   final headerController = ''.obs;
   final bodyController = ''.obs;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
   var messages = <AdminMessageModel>[].obs;
-
   var headerMessage = ''.obs;
   var bodyMessage = ''.obs;
 

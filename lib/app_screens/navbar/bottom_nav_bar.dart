@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mnx_attendance_app/app_screens/navbar/profile_screen.dart';
 
 import '../../../storage_services/users_storage_service.dart';
-import '../../admin/dashboard_screen.dart';
+import '../../admin/notification_screen.dart';
 import 'attendance_screen.dart';
 import 'dashboard_screen.dart';
 import 'google_nav_bar.dart';
